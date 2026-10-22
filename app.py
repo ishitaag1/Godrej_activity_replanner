@@ -50,9 +50,14 @@ def style_app() -> None:
     st.markdown(
         """
         <style>
-        .block-container { padding-top: 1.4rem; padding-bottom: 2rem; }
-        div[data-testid="stMetricValue"] { font-size: 1.35rem; }
+        .block-container { padding-top: 1.2rem; padding-bottom: 3rem; max-width: 1500px; }
+        div[data-testid="stMetricValue"] { font-size: 1.55rem; font-weight: 700; }
+        div[data-testid="stMetric"] { background: linear-gradient(135deg, rgba(30, 64, 175, .08), rgba(14, 165, 233, .06)); padding: 1rem 1.1rem; border: 1px solid rgba(100,116,139,.22); border-radius: 14px; }
         .hint { color: #5c6778; font-size: 0.92rem; }
+        h1 { letter-spacing: -0.04em; }
+        div[data-testid="stTabs"] button { font-weight: 600; }
+        section[data-testid="stSidebar"] { border-right: 1px solid rgba(100,116,139,.2); }
+        div[data-testid="stDataFrame"] { border: 1px solid rgba(100,116,139,.2); border-radius: 12px; overflow: hidden; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -177,13 +182,12 @@ def build_network_figure(frame: pd.DataFrame, schedule: sch.ProjectSchedule) -> 
     return fig
 
 
-def run_delay_analysis(activity_id: str, delay_days: int) -> None:
+def run_delay_analysis(delays: dict[str, int]) -> None:
     st.session_state.analysis_error = None
     try:
-        _, _, revised, impact = sch.apply_delay(
+        _, _, revised, impact = sch.apply_delays(
             st.session_state.activity_frame,
-            activity_id,
-            delay_days,
+            delays,
         )
     except sch.ScheduleError as exc:
         st.session_state.impact = None
@@ -213,11 +217,13 @@ def render_overview(baseline: sch.ProjectSchedule) -> None:
     col_f.metric("Schedule variance (days)", slip)
     col_g.metric("Project duration (days)", baseline.project_duration_days)
 
+    total = max(len(baseline.activities), 1)
+    progress = sum(item.planned_progress_pct for item in baseline.activities.values()) / total
+    st.progress(min(max(progress / 100, 0.0), 1.0), text=f"Planned progress represented in demo data: {progress:.0f}%")
+    risks = sum(1 for item in baseline.activities.values() if item.risk_level.casefold() == "high")
     st.caption(
-        "Demo dataset: typical multi-tower finish-to-start sequence with unique "
-        "activity IDs. It is **not** a live Godrej Properties programme export. "
-        "Durations are calendar days; weekends are not skipped. Version 1 has no "
-        "resource leveling or recovery (crashing/overtime)."
+        f"Risk register snapshot: {risks} high-risk activities. This is a synthetic demonstration schedule, "
+        "not a live Godrej Properties programme. Calendar-day planning; no resource leveling or recovery optimization."
     )
     st.write(
         "**Baseline critical path:** "
@@ -252,18 +258,22 @@ def render_activity_table(schedule: sch.ProjectSchedule) -> None:
         return
 
     display_cols = [
-        "activity_id",
-        "activity_name",
-        "tower_id",
-        "predecessors",
-        "duration_days",
-        "earliest_start",
-        "earliest_finish",
-        "total_float_days",
-        "critical",
+        "activity_id", "activity_name", "tower_id", "work_package", "trade",
+        "duration_days", "earliest_start", "earliest_finish",
+        "total_float_days", "risk_level", "planned_progress_pct", "critical",
     ]
-    st.dataframe(view[display_cols], use_container_width=True, hide_index=True)
-    st.caption(f"Showing {len(view)} of {len(table)} activities.")
+    st.dataframe(
+        view[display_cols],
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "total_float_days": st.column_config.NumberColumn("Float (days)", format="%d"),
+            "duration_days": st.column_config.NumberColumn("Duration (days)", format="%d"),
+            "planned_progress_pct": st.column_config.ProgressColumn("Planned progress", min_value=0, max_value=100, format="%d%%"),
+            "critical": st.column_config.CheckboxColumn("Critical"),
+        },
+    )
+    st.caption(f"Showing {len(view)} of {len(table)} activities. Filter by tower, criticality, or activity text.")
 
 
 def render_impact() -> None:
@@ -295,11 +305,18 @@ def render_impact() -> None:
             "calendar day(s) because the delay could not be absorbed by float."
         )
 
-    st.write(
-        f"**Delayed activity:** `{impact['delayed_activity_id']}` "
-        f"({impact['delayed_activity_name']}, tower {impact['delayed_tower_id']}) "
-        f"by {impact['delay_days']} day(s)."
-    )
+    if impact.get("scenario_delays"):
+        st.write("**Scenario events:** " + " · ".join(
+            f"`{event['activity_id']}` +{event['delay_days']}d"
+            for event in impact["scenario_delays"]
+        ))
+        st.caption(f"{impact.get('delay_event_count', 1)} delay event(s) · {impact.get('total_added_duration_days', 0)} total added activity-days")
+    else:
+        st.write(
+            f"**Delayed activity:** `{impact['delayed_activity_id']}` "
+            f"({impact['delayed_activity_name']}, tower {impact['delayed_tower_id']}) "
+            f"by {impact['delay_days']} day(s)."
+        )
     st.write("**Original critical path:** " + " → ".join(impact["original_critical_path"]))
     st.write("**Revised critical path:** " + " → ".join(impact["revised_critical_path"]))
     if impact["critical_path_changed"]:
@@ -416,8 +433,13 @@ def main() -> None:
     baseline: sch.ProjectSchedule = st.session_state.baseline
     frame: pd.DataFrame = st.session_state.activity_frame
 
-    st.title("Godrej Activity Replanner")
-    st.subheader("Construction delay-impact analysis with Critical Path Method")
+    st.markdown("### GODREJ · PROJECT CONTROLS")
+    st.title("Construction Schedule Intelligence")
+    st.markdown(
+        "Explore the baseline, identify critical work, and test **multiple delay events** "
+        "before they impact the handover date."
+    )
+    st.divider()
 
     with st.sidebar:
         st.header("Delay scenario")
@@ -433,15 +455,23 @@ def main() -> None:
             f"{'critical' if selected.is_critical else 'non-critical'}"
         )
         delay_days = st.number_input(
-            "Delay (calendar days)",
-            min_value=0,
-            max_value=365,
-            value=5,
-            step=1,
+            "Delay per selected activity (calendar days)",
+            min_value=0, max_value=365, value=5, step=1,
         )
-        if st.button("Run delay-impact analysis", type="primary", use_container_width=True):
-            with st.spinner("Recalculating the CPM network..."):
-                run_delay_analysis(activity_id, int(delay_days))
+        with st.expander("Add simultaneous delay events"):
+            extra_ids = st.multiselect(
+                "Other activities delayed by the same amount",
+                [item for item in activity_ids if item != activity_id],
+                help="All selected delays are applied together, then the dependency network is recalculated.",
+            )
+        st.caption("The scheduler applies all selected delays in one scenario.")
+        if st.button("Recalculate scenario", type="primary", use_container_width=True):
+            delays = {item: int(delay_days) for item in [activity_id, *extra_ids] if int(delay_days) > 0}
+            if not delays:
+                st.warning("Set a delay greater than zero to run a scenario.")
+            else:
+                with st.spinner("Recalculating the CPM network..."):
+                    run_delay_analysis(delays)
 
         csv_bytes, csv_name = csv_bytes_for_download()
         st.download_button(
@@ -480,8 +510,10 @@ def main() -> None:
     with tab_visuals:
         current = st.session_state.revised_schedule or baseline
         towers = ["All", *sorted({item.tower_id for item in current.activities.values()})]
-        tower_filter = st.selectbox("Gantt tower filter", towers, key="gantt_tower")
+        col_tower, col_critical = st.columns([1, 2])
+        tower_filter = col_tower.selectbox("Tower / work area", towers, key="gantt_tower")
         st.plotly_chart(build_gantt(current, tower_filter), use_container_width=True)
+        st.caption("Red bars/nodes indicate zero-float critical activities; blue indicates non-critical work.")
         st.plotly_chart(build_network_figure(frame, current), use_container_width=True)
     with tab_ai:
         render_assistant()
