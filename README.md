@@ -1,6 +1,6 @@
 # Godrej Activity Replanner
 
-A construction **delay-impact analysis** tool built around the Critical Path Method (CPM). A planner selects an activity, applies a delay, and immediately sees whether project completion moves, which downstream activities are affected, and whether the critical path changes.
+A construction **schedule intelligence and delay-impact analysis** tool built around the Critical Path Method (CPM). Explore a richer multi-tower programme, inspect activity metadata, and apply one or several delay events together to see downstream movement, float consumption, and critical-path changes.
 
 The idea comes from internship work at **Godrej Properties** (understanding how a slip on one tower activity can affect handover). The activity table in this repository is a **synthetic demo network** with typical tower sequences (clearance → structure → finishes → handover). It is **not** a live project export, and the dates should not be treated as real site performance.
 
@@ -16,7 +16,9 @@ On a multi-tower job, the same activity name appears in more than one location (
 
 - Load and validate activities from CSV (IDs, durations, predecessors, cycles).
 - CPM forward pass, backward pass, total float, and critical path.
-- Delay analysis that preserves the baseline table.
+- Single-activity and simultaneous multi-activity delay scenarios that preserve the baseline table.
+- Work package, trade, responsible team, planned progress, and risk-level metadata.
+- Scenario comparison with affected activity dates, float changes, and critical-path changes.
 - Streamlit dashboard: overview, searchable table, impact summary, Gantt-style timeline, dependency graph, CSV export.
 - Optional local AI assistant (Ollama) that can **only** call allow-listed scheduler tools. The app runs without Ollama.
 
@@ -41,7 +43,7 @@ User (Streamlit)
 | File | Role |
 |---|---|
 | `scheduler.py` | Graph + CPM + delay impact. No LLM. |
-| `data/activities.csv` | Demo activities with unique IDs. |
+| `data/activities.csv` | 50 synthetic activities with unique IDs, dependencies, trades, work packages, progress, teams, and risk levels. |
 | `app.py` | Streamlit UI. |
 | `agent.py` | Optional Ollama assistant and safe tool dispatch. |
 | `tests/` | Unit tests, including hand-calculated CPM examples. |
@@ -68,10 +70,7 @@ User (Streamlit)
 
 ## Installation (Windows PowerShell)
 
-From the project folder (`schedule-replanner` in this workspace):
-
-```powershell
-cd D:\RP\schedule-replanner
+From the folder where you cloned this repository, run:
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
@@ -94,8 +93,10 @@ ollama pull llama3.2
 
 ## Tests
 
+A GitHub Actions workflow runs the unit-test suite on pushes to `main` or `feature/**` and on pull requests to `main`.
+
+
 ```powershell
-cd D:\RP\schedule-replanner
 .\.venv\Scripts\Activate.ps1
 python -m unittest discover -s tests -v
 ```
@@ -109,7 +110,6 @@ Expected regression checks (do not change these just to pass):
 ## Launch the dashboard
 
 ```powershell
-cd D:\RP\schedule-replanner
 .\.venv\Scripts\Activate.ps1
 python -m streamlit run app.py
 ```
@@ -171,7 +171,7 @@ The UI only treats an answer as grounded if a scheduler tool actually ran.
 - Finish-to-start only (no SS/FF lags).
 - Demo data, not a live Godrej programme.
 
-Possible next steps: working-day calendars, multiple delay events, earned-value views, and a proper recovery suggestion module that stays separate from CPM math.
+Possible next steps: working-day calendars, crew/resource leveling, earned-value tracking from real progress updates, and a recovery recommendation module kept separate from CPM calculations.
 
 ## Secrets
 
