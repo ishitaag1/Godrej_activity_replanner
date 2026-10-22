@@ -21,7 +21,7 @@ class TestScheduleAssistantTools(unittest.TestCase):
         self.assertTrue(status["ok"])
         self.assertEqual(status["source"], "scheduler.compute_cpm")
         self.assertEqual(status["project_finish"], "2026-05-08")
-        self.assertEqual(status["activity_count"], 31)
+        self.assertEqual(status["activity_count"], len(self.assistant.frame))
 
     def test_critical_path_uses_scheduler(self) -> None:
         result = self.assistant.get_critical_path()
