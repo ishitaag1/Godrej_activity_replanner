@@ -230,6 +230,28 @@ def render_overview(baseline: sch.ProjectSchedule) -> None:
         + " → ".join(baseline.critical_path)
     )
 
+    summary = baseline.to_dataframe()
+    left, right = st.columns(2)
+    package_counts = summary.groupby("work_package", dropna=False).size().reset_index(name="activities")
+    package_fig = px.bar(
+        package_counts.sort_values("activities", ascending=True),
+        x="activities", y="work_package", orientation="h",
+        title="Activities by work package",
+        labels={"work_package": "Work package", "activities": "Activity count"},
+        color="activities", color_continuous_scale="Blues",
+    )
+    package_fig.update_layout(height=360, margin=dict(l=10, r=10, t=55, b=10), coloraxis_showscale=False)
+    left.plotly_chart(package_fig, use_container_width=True)
+    risk_counts = summary.groupby("risk_level", dropna=False).size().reset_index(name="activities")
+    risk_fig = px.pie(
+        risk_counts, names="risk_level", values="activities", hole=0.58,
+        title="Activity risk profile",
+        color="risk_level",
+        color_discrete_map={"High": "#dc2626", "Medium": "#f59e0b", "Low": "#16a34a", "Unspecified": "#64748b"},
+    )
+    risk_fig.update_layout(height=360, margin=dict(l=10, r=10, t=55, b=10), legend_title_text="Risk")
+    right.plotly_chart(risk_fig, use_container_width=True)
+
 
 def render_activity_table(schedule: sch.ProjectSchedule) -> None:
     table = schedule_table(schedule)
