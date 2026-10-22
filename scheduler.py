@@ -92,6 +92,11 @@ class ActivitySchedule:
     latest_finish: date  # inclusive
     total_float_days: int
     is_critical: bool
+    work_package: str = ""
+    trade: str = ""
+    planned_progress_pct: float = 0.0
+    responsible_team: str = ""
+    risk_level: str = "Unspecified"
 
 
 @dataclass
@@ -124,6 +129,11 @@ class ProjectSchedule:
                     "latest_finish": item.latest_finish.isoformat(),
                     "total_float_days": item.total_float_days,
                     "is_critical": item.is_critical,
+                    "work_package": item.work_package,
+                    "trade": item.trade,
+                    "planned_progress_pct": item.planned_progress_pct,
+                    "responsible_team": item.responsible_team,
+                    "risk_level": item.risk_level,
                 }
             )
         frame = pd.DataFrame(rows)
@@ -435,6 +445,11 @@ def compute_cpm(frame: pd.DataFrame) -> ProjectSchedule:
             latest_finish=offset_to_date(lf_excl - 1),
             total_float_days=total_float[activity_id],
             is_critical=total_float[activity_id] == 0,
+            work_package=str(row.get("work_package", "") or ""),
+            trade=str(row.get("trade", "") or ""),
+            planned_progress_pct=float(row.get("planned_progress_pct", 0) or 0),
+            responsible_team=str(row.get("responsible_team", "") or ""),
+            risk_level=str(row.get("risk_level", "Unspecified") or "Unspecified"),
         )
 
     project_start = min(item.earliest_start for item in activities.values())
@@ -468,49 +483,46 @@ def find_activity_ids(
     return matches["activity_id"].tolist()
 
 
+def apply_delays(
+    frame: pd.DataFrame,
+    delays: dict[str, int],
+) -> tuple[pd.DataFrame, ProjectSchedule, ProjectSchedule, dict[str, Any]]:
+    """Apply several duration delays together, then recalculate CPM once."""
+    if not delays:
+        raise ScheduleError("Provide at least one activity delay for the scenario.")
+    known_ids = set(frame["activity_id"])
+    normalized: dict[str, int] = {}
+    for raw_id, raw_days in delays.items():
+        activity_id = str(raw_id).strip()
+        if activity_id not in known_ids:
+            raise InvalidActivityIdError(f"Unknown activity_id '{activity_id}'. Use a unique activity ID.")
+        if isinstance(raw_days, bool) or not isinstance(raw_days, int):
+            raise ScheduleError(f"Delay for {activity_id} must be a whole number of days.")
+        if raw_days < 0:
+            raise NegativeDelayError("Negative delays are unsupported; recovery/crashing is out of scope.")
+        if raw_days:
+            normalized[activity_id] = raw_days
+    original_schedule = compute_cpm(frame)
+    revised_frame = frame.copy(deep=True)
+    for activity_id, days in normalized.items():
+        mask = revised_frame["activity_id"] == activity_id
+        revised_frame.loc[mask, "duration_days"] = revised_frame.loc[mask, "duration_days"].astype(int) + days
+    revised_schedule = compute_cpm(revised_frame)
+    first_id = next(iter(normalized), next(iter(delays)))
+    impact = build_impact_summary(first_id, normalized.get(first_id, 0), original_schedule, revised_schedule)
+    impact["scenario_delays"] = [{"activity_id": key, "delay_days": value} for key, value in normalized.items()]
+    impact["total_added_duration_days"] = sum(normalized.values())
+    impact["delay_event_count"] = len(normalized)
+    return revised_frame, original_schedule, revised_schedule, impact
+
+
 def apply_delay(
     frame: pd.DataFrame,
     activity_id: str,
     delay_days: int,
 ) -> tuple[pd.DataFrame, ProjectSchedule, ProjectSchedule, dict[str, Any]]:
-    """
-    Add delay_days to one activity's duration and recalculate CPM.
-
-    The original table is copied, never edited in place, so the baseline
-    remains available for comparison.
-
-    Delay meaning in version 1: the activity *takes longer* by delay_days.
-    Downstream activities move only if this new exclusive finish pushes
-    their earliest start. Activities with enough float may not move at all.
-
-    Returns (revised_frame, original_schedule, revised_schedule, impact).
-    """
-    if delay_days < 0:
-        raise NegativeDelayError(
-            "Negative delays are not supported in version 1. "
-            "This engine does not crash or compress the schedule."
-        )
-    if activity_id not in set(frame["activity_id"]):
-        raise InvalidActivityIdError(
-            f"Unknown activity_id '{activity_id}'. "
-            "Use the unique ID (for example T3-TIL), not only the name."
-        )
-
-    original_schedule = compute_cpm(frame)
-    revised_frame = frame.copy(deep=True)
-    mask = revised_frame["activity_id"] == activity_id
-    revised_frame.loc[mask, "duration_days"] = (
-        revised_frame.loc[mask, "duration_days"] + int(delay_days)
-    )
-    revised_schedule = compute_cpm(revised_frame)
-    impact = build_impact_summary(
-        delayed_activity_id=activity_id,
-        delay_days=int(delay_days),
-        original=original_schedule,
-        revised=revised_schedule,
-    )
-    return revised_frame, original_schedule, revised_schedule, impact
-
+    """Backward-compatible wrapper for a single-activity what-if delay."""
+    return apply_delays(frame, {activity_id: delay_days})
 
 def build_impact_summary(
     delayed_activity_id: str,
