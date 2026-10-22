@@ -252,5 +252,41 @@ class TestProjectCsv(unittest.TestCase):
         self.assertEqual(revised.activities["T1-HND"].earliest_finish, date(2026, 4, 26))
 
 
+
+class TestExpandedScenarios(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.csv_path = Path(__file__).resolve().parents[1] / "data" / "activities.csv"
+        cls.frame, cls.baseline = sch.load_and_schedule(cls.csv_path)
+
+    def test_expanded_dataset_has_planning_metadata(self) -> None:
+        self.assertGreaterEqual(len(self.frame), 45)
+        for column in ("work_package", "trade", "planned_progress_pct", "responsible_team", "risk_level"):
+            self.assertIn(column, self.frame.columns)
+        self.assertEqual(self.baseline.project_finish, date(2026, 5, 8))
+
+    def test_multiple_delays_are_applied_together(self) -> None:
+        revised_frame, original, revised, impact = sch.apply_delays(
+            self.frame, {"T3-TIL": 5, "T1-TIL": 2}
+        )
+        self.assertEqual(original.project_finish, date(2026, 5, 8))
+        self.assertEqual(revised.project_finish, date(2026, 5, 13))
+        self.assertEqual(impact["delay_event_count"], 2)
+        self.assertEqual(impact["total_added_duration_days"], 7)
+        self.assertEqual(len(impact["scenario_delays"]), 2)
+        self.assertEqual(
+            int(revised_frame.loc[revised_frame["activity_id"] == "T1-TIL", "duration_days"].iloc[0]),
+            int(self.frame.loc[self.frame["activity_id"] == "T1-TIL", "duration_days"].iloc[0]) + 2,
+        )
+
+    def test_multiple_delays_reject_unknown_activity(self) -> None:
+        with self.assertRaises(sch.InvalidActivityIdError):
+            sch.apply_delays(self.frame, {"NO-SUCH-ID": 2})
+
+    def test_multiple_delays_reject_negative_duration_change(self) -> None:
+        with self.assertRaises(sch.NegativeDelayError):
+            sch.apply_delays(self.frame, {"T3-TIL": -1})
+
+
 if __name__ == "__main__":
     unittest.main()
