@@ -1,0 +1,13 @@
+{
+  "synthetic_demo": true,
+  "project_start_date": "2026-10-01",
+  "tower_count": 2,
+  "floors_per_tower": 5,
+  "units_per_floor": 2,
+  "staircase_count_per_tower": 2,
+  "calendar": "calendar_days",
+  "applicable_work_packages": ["site_setup", "substructure", "floor_shell", "floor_blockwork", "wet_area", "room_finish", "lift_handover", "lift_lobby", "external", "terrace", "unit_cleaning", "lobby_cleaning", "final_inspection"],
+  "optional_activities": [],
+  "retain_staircase_for_material_shifting": true,
+  "duration_assumptions": "Illustrative calendar-day estimates only; replace with approved project durations."
+}
