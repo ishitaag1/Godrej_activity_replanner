@@ -17,6 +17,22 @@ import scenario_manager
 import scheduler as sch
 import sequence_validator
 
+st.markdown(
+    """
+    <style>
+    #MainMenu {
+        visibility: hidden;
+    }
+
+    footer {
+        visibility: hidden;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 APP_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = APP_DIR / "data" / "demo_project_config.json"
 
