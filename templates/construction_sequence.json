@@ -1,0 +1,226 @@
+{
+  "source_document": "Construction_Activity_Sequence.docx",
+  "source_note": "Activity order is extracted from the supplied sequence. Durations are illustrative calendar-day assumptions, not project records.",
+  "packages": {
+    "site_setup": {
+      "scope": "project",
+      "phase": "Sub-structure",
+      "work_package": "Preliminary work and site setup",
+      "steps": [
+        {"code": "SURFACE-DRESS", "name": "Surface dressing / site clearing", "days": 2, "trade": "Civil", "risk": "Medium", "ref": "A.1"},
+        {"code": "FENCING", "name": "Site barricading and fencing", "days": 2, "trade": "Site setup", "risk": "High", "ref": "A.1"},
+        {"code": "LAYOUT-SURVEY", "name": "Layout / survey work", "days": 2, "trade": "Survey", "risk": "Medium", "ref": "A.1"},
+        {"code": "CENTRE-LINE", "name": "Centre line marking", "days": 1, "trade": "Survey", "risk": "Medium", "ref": "A.1"},
+        {"code": "BENCHMARK", "name": "Benchmark setting", "days": 1, "trade": "Survey", "risk": "Medium", "ref": "A.1"},
+        {"code": "HIRA", "name": "HIRA - Hazard Identification & Risk Assessment", "days": 1, "trade": "HSE", "risk": "High", "ref": "A.1"},
+        {"code": "TEMP-ARRANGEMENTS", "name": "Waterproofing / shading / launching arrangement (temporary)", "days": 2, "trade": "Site setup", "risk": "Medium", "ref": "A.1"}
+      ]
+    },
+    "substructure": {
+      "scope": "tower",
+      "phase": "Sub-structure",
+      "work_package": "Earthwork, foundation and plinth",
+      "steps": [
+        {"code": "EARTHWORK", "name": "Earthwork excavation", "days": 5, "trade": "Civil", "risk": "High", "ref": "A.2"},
+        {"code": "SOFT-SOIL", "name": "Excavation - soft soil", "days": 2, "trade": "Civil", "risk": "Medium", "ref": "A.2", "conditional": true, "condition": "Activate only when encountered and confirmed by site records."},
+        {"code": "SOFT-ROCK", "name": "Excavation - soft rock / Murum", "days": 3, "trade": "Civil", "risk": "High", "ref": "A.2", "conditional": true, "condition": "Activate only when encountered and confirmed by site records."},
+        {"code": "HARD-ROCK", "name": "Excavation - hard rock / Murum", "days": 4, "trade": "Civil", "risk": "High", "ref": "A.2", "conditional": true, "condition": "Activate only when encountered and confirmed by site records."},
+        {"code": "ATT-BELOW-SLAB", "name": "Anti-termite treatment (ATT) - below slab", "days": 1, "trade": "Specialist", "risk": "Medium", "ref": "A.2"},
+        {"code": "POLYTHENE", "name": "Laying polythene sheet", "days": 1, "trade": "Civil", "risk": "Low", "ref": "A.2"},
+        {"code": "STONE-SOLING", "name": "Stone soling & sand filling", "days": 2, "trade": "Civil", "risk": "Medium", "ref": "A.2"},
+        {"code": "PCC-FOOTING", "name": "PCC bed (Plain Cement Concrete)", "days": 2, "trade": "Civil", "risk": "Medium", "ref": "A.3"},
+        {"code": "FOOTING-REBAR", "name": "Footing mesh - reinforcement steel", "days": 3, "trade": "Reinforcement", "risk": "High", "ref": "A.3"},
+        {"code": "FOOTING-FORM", "name": "Formwork of footing (mild steel)", "days": 2, "trade": "Formwork", "risk": "Medium", "ref": "A.3"},
+        {"code": "FOOTING-POUR", "name": "Pouring of RCC for footing", "days": 1, "trade": "Concrete", "risk": "High", "ref": "A.3"},
+        {"code": "FOOTING-STRIP", "name": "Removal of formwork of footing", "days": 1, "trade": "Formwork", "risk": "Medium", "ref": "A.3"},
+        {"code": "NECK-FORM", "name": "Formwork of neck / stub column", "days": 2, "trade": "Formwork", "risk": "Medium", "ref": "A.3"},
+        {"code": "NECK-POUR", "name": "Pouring of RCC for neck column", "days": 1, "trade": "Concrete", "risk": "High", "ref": "A.3"},
+        {"code": "BITUMEN", "name": "Apply bitumen paint on footing & column (waterproofing)", "days": 2, "trade": "Waterproofing", "risk": "High", "ref": "A.3"},
+        {"code": "BACKFILL-FOOTING", "name": "Backfilling of excavated earth including consolidation", "days": 3, "trade": "Civil", "risk": "Medium", "ref": "A.3"},
+        {"code": "PCC-PLINTH", "name": "PCC bed for plinth beam", "days": 2, "trade": "Civil", "risk": "Medium", "ref": "A.4"},
+        {"code": "PLINTH-REBAR", "name": "Laying of reinforcement steel for plinth beam", "days": 2, "trade": "Reinforcement", "risk": "High", "ref": "A.4"},
+        {"code": "PLINTH-FORM", "name": "Formwork of plinth beam", "days": 2, "trade": "Formwork", "risk": "Medium", "ref": "A.4"},
+        {"code": "PLINTH-POUR", "name": "RCC work of plinth beam", "days": 1, "trade": "Concrete", "risk": "High", "ref": "A.4"},
+        {"code": "PLINTH-STRIP", "name": "Removal of formwork of plinth beam", "days": 1, "trade": "Formwork", "risk": "Medium", "ref": "A.4"},
+        {"code": "DPC", "name": "Damp proof course (DPC)", "days": 2, "trade": "Waterproofing", "risk": "Medium", "ref": "A.4"},
+        {"code": "BACKFILL-PLINTH", "name": "Backfilling of earth between plinth beams (incl. consolidation)", "days": 3, "trade": "Civil", "risk": "Medium", "ref": "A.4"},
+        {"code": "ATT-GRADE", "name": "Anti-termite treatment for grade slab", "days": 1, "trade": "Specialist", "risk": "Medium", "ref": "A.4"},
+        {"code": "GRADE-SLAB", "name": "PCC or RCC work for grade slab & column starter", "days": 3, "trade": "Concrete", "risk": "High", "ref": "A.4"},
+        {"code": "WET-AREA-WP", "name": "Waterproofing - floor & walls in wet areas", "days": 3, "trade": "Waterproofing", "risk": "High", "ref": "A.4"}
+      ]
+    },
+    "floor_shell": {
+      "scope": "floor",
+      "phase": "Super-structure shell",
+      "work_package": "Floor-by-floor RCC frame cycle",
+      "steps": [
+        {"code": "COLUMN-REBAR", "name": "Reinforcement steel for floor columns", "days": 3, "trade": "Reinforcement", "risk": "High", "ref": "B.5"},
+        {"code": "COLUMN-FORM", "name": "Formwork for floor columns", "days": 2, "trade": "Formwork", "risk": "Medium", "ref": "B.5"},
+        {"code": "COLUMN-POUR", "name": "RCC pour for floor columns", "days": 1, "trade": "Concrete", "risk": "High", "ref": "B.5"},
+        {"code": "COLUMN-STRIP", "name": "Removal of formwork of columns", "days": 1, "trade": "Formwork", "risk": "Medium", "ref": "B.5"},
+        {"code": "BEAM-SLAB-FORM", "name": "Formwork for beam and slab", "days": 3, "trade": "Formwork", "risk": "Medium", "ref": "B.6"},
+        {"code": "BEAM-SLAB-REBAR", "name": "Reinforcement steel for beam & slab", "days": 3, "trade": "Reinforcement", "risk": "High", "ref": "B.6"},
+        {"code": "MEP-CONDUIT", "name": "MEP conduit / sleeve installation inside RCC (MEP clearance 1)", "days": 2, "trade": "MEP", "risk": "High", "ref": "B.6"},
+        {"code": "STAIR-LIFT-FORM", "name": "Formwork for staircase, lift walls and electrical shaft", "days": 2, "trade": "Formwork", "risk": "High", "ref": "B.5"},
+        {"code": "STAIR-LIFT-REBAR", "name": "Reinforcement steel for staircase, lift walls & electric shaft", "days": 2, "trade": "Reinforcement", "risk": "High", "ref": "B.5"},
+        {"code": "STAIR-LIFT-POUR", "name": "RCC work for staircase, lift walls & electric shaft", "days": 1, "trade": "Concrete", "risk": "High", "ref": "B.5"},
+        {"code": "SLAB-POUR", "name": "RCC pour for staircase, beam and slab", "days": 1, "trade": "Concrete", "risk": "High", "ref": "B.6"},
+        {"code": "SLAB-STRIP", "name": "Removal of formwork of beams and slab", "days": 2, "trade": "Formwork", "risk": "Medium", "ref": "B.6"},
+        {"code": "POST-POUR-CLEAR", "name": "RCC post-pour clearance", "days": 1, "trade": "Quality", "risk": "High", "ref": "B.6"},
+        {"code": "RECTIFICATION", "name": "RCC rectification works (if any)", "days": 1, "trade": "Civil", "risk": "Medium", "ref": "B.6", "conditional": true, "condition": "Activate only when post-pour inspection identifies rectification."},
+        {"code": "BALCONY-RAILING", "name": "MS railing works - balcony / utility (safety priority)", "days": 2, "trade": "Metal works", "risk": "High", "ref": "B.6"}
+      ]
+    },
+    "floor_blockwork": {
+      "scope": "floor",
+      "phase": "Unit finishes",
+      "work_package": "Blockwork and plaster",
+      "steps": [
+        {"code": "MEP-WIRE-PULL", "name": "MEP clearance 1 - wire pulling through conduits (inside RCC)", "days": 2, "trade": "Electrical", "risk": "Medium", "ref": "C.7"},
+        {"code": "BLOCK-WORK", "name": "Block work (walls)", "days": 5, "trade": "Masonry", "risk": "Medium", "ref": "C.7"},
+        {"code": "LIFT-SHAFT-BLOCK", "name": "Lift shaft side block work", "days": 3, "trade": "Masonry", "risk": "High", "ref": "C.7"},
+        {"code": "LEDGE-WALL", "name": "Ledge wall block work", "days": 2, "trade": "Masonry", "risk": "Medium", "ref": "C.7"},
+        {"code": "CHASING-CLEAR", "name": "MEP clearance 2 - chasing clearance over block work (before gypsum)", "days": 2, "trade": "MEP", "risk": "High", "ref": "C.7"},
+        {"code": "GYPSUM", "name": "Gypsum plaster / cement plaster (walls)", "days": 5, "trade": "Plaster", "risk": "Medium", "ref": "C.7"},
+        {"code": "GYPSUM-MAIN", "name": "Main gypsum on walls", "days": 3, "trade": "Plaster", "risk": "Medium", "ref": "C.7"},
+        {"code": "GYPSUM-EDGES", "name": "Gypsum finishing at beam / column edges", "days": 2, "trade": "Plaster", "risk": "Low", "ref": "C.7"},
+        {"code": "SKIRTING-BASE", "name": "150 mm above skirting finishing", "days": 1, "trade": "Plaster", "risk": "Low", "ref": "C.7"},
+        {"code": "BACKING-PLASTER", "name": "Backing plaster - if right angle issue observed", "days": 1, "trade": "Plaster", "risk": "Low", "ref": "C.7", "conditional": true, "condition": "Activate only when a right-angle issue is observed."},
+        {"code": "CEMENT-PLASTER", "name": "Cement plaster on walls and ledge wall area", "days": 3, "trade": "Plaster", "risk": "Medium", "ref": "C.7"},
+        {"code": "NOTCH-FILL", "name": "Concealed plumbing notch filling with ready-mix plaster", "days": 2, "trade": "Plumbing", "risk": "Medium", "ref": "C.7"},
+        {"code": "EXTERNAL-PLASTER", "name": "External plaster - for buildings with block work on external walls", "days": 4, "trade": "Plaster", "risk": "Medium", "ref": "C.7", "conditional": true, "condition": "Activate only where external walls use block work."}
+      ]
+    },
+    "wet_area": {
+      "scope": "unit",
+      "phase": "Unit finishes",
+      "work_package": "Toilet and wet-area sequence",
+      "steps": [
+        {"code": "WET-CHASING", "name": "MEP chasing works - electrical conduits, concealed plumbing and wash basin counter", "days": 2, "trade": "MEP", "risk": "Medium", "ref": "C.8 stage 1"},
+        {"code": "PLUMB-FIRST-FIX", "name": "Plumbing works first fix - pipes in sleeves", "days": 3, "trade": "Plumbing", "risk": "High", "ref": "C.8 stage 1"},
+        {"code": "SLEEVE-PACK", "name": "Sleeve / bore packing - all sleeves in floor area", "days": 1, "trade": "Plumbing", "risk": "Medium", "ref": "C.8 stage 1"},
+        {"code": "WET-WATERPROOF", "name": "Waterproofing - floor and walls (dry and shower areas)", "days": 3, "trade": "Waterproofing", "risk": "High", "ref": "C.8 stage 2"},
+        {"code": "WET-PROTECTIVE-SCREED", "name": "Protective screed on waterproofing floor", "days": 2, "trade": "Civil", "risk": "Medium", "ref": "C.8 stage 2"},
+        {"code": "PLUMB-SECOND-FIX", "name": "Plumbing works second fix - concealed wall pipes, flush tank, shaft connection", "days": 2, "trade": "Plumbing", "risk": "High", "ref": "C.8 stage 3"},
+        {"code": "GRANITE-DOOR-FRAME", "name": "Natural stone / granite door frame fixing (if applicable)", "days": 1, "trade": "Stone", "risk": "Low", "ref": "C.8 stage 3", "conditional": true, "condition": "Activate when natural stone / granite door framing applies."},
+        {"code": "BASIN-COUNTER-BASE", "name": "Wash basin counter support / base fixing", "days": 1, "trade": "Stone", "risk": "Low", "ref": "C.8 stage 3"},
+        {"code": "WALL-DADO", "name": "Wall dado tile works with adhesive - except first bottom row", "days": 3, "trade": "Tiling", "risk": "Medium", "ref": "C.8 stage 3"},
+        {"code": "WET-GRANITE", "name": "Granite works - basin counter, ledge wall top and window frame", "days": 2, "trade": "Stone", "risk": "Medium", "ref": "C.8 stage 3"},
+        {"code": "WET-FLOOR-TILE", "name": "Floor tiling works", "days": 3, "trade": "Tiling", "risk": "Medium", "ref": "C.8 stage 4"},
+        {"code": "DADO-FIRST-ROW", "name": "First row of dado tiling as per slope", "days": 1, "trade": "Tiling", "risk": "Medium", "ref": "C.8 stage 4"},
+        {"code": "WET-WINDOW", "name": "Window fixing", "days": 1, "trade": "Windows", "risk": "Medium", "ref": "C.8 stage 4"},
+        {"code": "ABOVE-CEILING-PACK", "name": "Above false ceiling - plumbing horizontal sleeve packing and painting", "days": 1, "trade": "Plumbing", "risk": "Medium", "ref": "C.8 stage 4"},
+        {"code": "WET-CEILING-FRAME", "name": "False ceiling framing works", "days": 2, "trade": "Ceilings", "risk": "Low", "ref": "C.8 stage 4", "conditional": true, "condition": "Activate only when a false ceiling is specified."},
+        {"code": "WET-GROUT", "name": "Epoxy tile grouting", "days": 1, "trade": "Tiling", "risk": "Low", "ref": "C.8 stage 4"},
+        {"code": "WET-FINAL-FIX", "name": "CP & sanitary fixing, grating, electrical switchboard and ceiling grid / sheet", "days": 2, "trade": "MEP", "risk": "Medium", "ref": "C.8 stage 4"}
+      ]
+    },
+    "room_finish": {
+      "scope": "unit",
+      "phase": "Unit finishes",
+      "work_package": "Room, living and bedroom sequence",
+      "steps": [
+        {"code": "ROOM-BENCHMARK", "name": "Benchmark in lobby - FFL pad at floor and 1m level on wall", "days": 1, "trade": "Survey", "risk": "Low", "ref": "C.9 stage 1"},
+        {"code": "ROOM-MEP", "name": "Electrical, plumbing and firefighting services", "days": 3, "trade": "MEP", "risk": "Medium", "ref": "C.9 stage 1"},
+        {"code": "ANTI-CAPILLARY", "name": "Anti-capillary coat at flooring / skirting junction", "days": 1, "trade": "Waterproofing", "risk": "Medium", "ref": "C.9 stage 2"},
+        {"code": "BALCONY-WATERPROOF", "name": "Balcony waterproofing and checks before room flooring", "days": 2, "trade": "Waterproofing", "risk": "High", "ref": "C.9 stage 2", "conditional": true, "condition": "Activate only where a balcony / utility waterproofing package applies."},
+        {"code": "ROOM-FLOORING", "name": "Living and bedroom tile / stone flooring", "days": 4, "trade": "Tiling", "risk": "Medium", "ref": "C.9 stage 2"},
+        {"code": "STONE-POLISH", "name": "First coat cutting / polishing - if stone flooring", "days": 1, "trade": "Stone", "risk": "Low", "ref": "C.9 stage 2", "conditional": true, "condition": "Activate only if stone flooring is selected."},
+        {"code": "ROOM-SKIRTING", "name": "Tile skirting works - except near doors / full-height windows", "days": 2, "trade": "Tiling", "risk": "Low", "ref": "C.9 stage 2"},
+        {"code": "KITCHEN-PLATFORM", "name": "Kitchen platform fixing - after kitchen FF work completed", "days": 2, "trade": "Stone", "risk": "Medium", "ref": "C.9 stage 2"},
+        {"code": "KITCHEN-DADO", "name": "Kitchen dado works", "days": 2, "trade": "Tiling", "risk": "Low", "ref": "C.9 stage 2"},
+        {"code": "FLOOR-PROTECTION", "name": "Protection of flooring - bubble sheet / PP sheets", "days": 1, "trade": "Finishes", "risk": "Low", "ref": "C.9 stage 2"},
+        {"code": "TEMP-DOOR", "name": "Installation of temporary main door", "days": 1, "trade": "Carpentry", "risk": "Medium", "ref": "C.9 stage 2"},
+        {"code": "WINDOW-TRACKS", "name": "Fixing of window tracks", "days": 2, "trade": "Windows", "risk": "Medium", "ref": "C.9 stage 3"},
+        {"code": "ROOM-WIRE-PULL", "name": "Electrical wire pulling - after temporary door fixing", "days": 2, "trade": "Electrical", "risk": "Medium", "ref": "C.9 stage 3"},
+        {"code": "WINDOW-SHUTTERS", "name": "Window shutter fixing - if step sill not provided", "days": 1, "trade": "Windows", "risk": "Low", "ref": "C.9 stage 3", "conditional": true, "condition": "Activate only when a step sill is not provided."},
+        {"code": "PUTTY", "name": "Putty works - walls", "days": 3, "trade": "Painting", "risk": "Low", "ref": "C.9 stage 3"},
+        {"code": "CEILING-PUTTY", "name": "Ceiling putty after flooring protection", "days": 2, "trade": "Painting", "risk": "Low", "ref": "C.9 stage 3", "conditional": true, "condition": "Activate only when ceiling putty is scheduled after flooring protection."},
+        {"code": "PREHUNG-DOORS", "name": "Pre-hung door fixing with architrave", "days": 2, "trade": "Carpentry", "risk": "Medium", "ref": "C.9 stage 4"},
+        {"code": "DOOR-PROTECTION", "name": "Protection of door shutter", "days": 1, "trade": "Finishes", "risk": "Low", "ref": "C.9 stage 4"},
+        {"code": "SKIRTING-FINAL", "name": "Skirting finish near door / full-height windows", "days": 1, "trade": "Tiling", "risk": "Low", "ref": "C.9 stage 4"},
+        {"code": "SWITCH-BOX", "name": "Electrical switch box fixing", "days": 1, "trade": "Electrical", "risk": "Medium", "ref": "C.9 stage 4"},
+        {"code": "FF-RAILING-PAINT", "name": "Firefighting line & MS railing painting works", "days": 2, "trade": "Painting", "risk": "Medium", "ref": "C.9 stage 4"},
+        {"code": "ROOM-PROTECTION", "name": "Protection of flooring, door / window hardware, FF lines and railings", "days": 1, "trade": "Finishes", "risk": "Low", "ref": "C.9 stage 4"},
+        {"code": "PAINT-FIRST", "name": "First coat of paint - ceiling then walls", "days": 2, "trade": "Painting", "risk": "Low", "ref": "C.9 stage 4"},
+        {"code": "ROOM-GROUT", "name": "Tile grouting works", "days": 1, "trade": "Tiling", "risk": "Low", "ref": "C.9 stage 4"},
+        {"code": "PAINT-SECOND", "name": "Second coat of paint - ceiling then walls", "days": 2, "trade": "Painting", "risk": "Low", "ref": "C.9 stage 4"},
+        {"code": "ROOM-CEILING-FRAME", "name": "False ceiling framing", "days": 2, "trade": "Ceilings", "risk": "Low", "ref": "C.9 stage 4", "conditional": true, "condition": "Activate only when a false ceiling is specified."},
+        {"code": "ROOM-CEILING-SHEETS", "name": "False ceiling tiles / sheets", "days": 2, "trade": "Ceilings", "risk": "Low", "ref": "C.9 stage 4", "conditional": true, "condition": "Activate only when a false ceiling is specified."}
+      ]
+    },
+    "lift_handover": {
+      "scope": "tower",
+      "phase": "Common areas",
+      "work_package": "Lift shaft and contractor handover",
+      "steps": [
+        {"code": "LIFT-SHAFT-HANDOVER", "name": "Lift shaft handover - LMR completion", "days": 1, "trade": "Lift contractor", "risk": "High", "ref": "D.10"},
+        {"code": "LIFT-TEMPLATE", "name": "Template fixing by lift contractor", "days": 2, "trade": "Lift contractor", "risk": "Medium", "ref": "D.10"},
+        {"code": "LIFT-CENTRELINE", "name": "Centre line marking for lift shafts", "days": 1, "trade": "Survey", "risk": "Medium", "ref": "D.10"}
+      ]
+    },
+    "lift_lobby": {
+      "scope": "floor",
+      "phase": "Common areas",
+      "work_package": "Lift lobby",
+      "steps": [
+        {"code": "LOBBY-SIDE-BLOCK", "name": "Side block work for lift shafts", "days": 2, "trade": "Masonry", "risk": "Medium", "ref": "D.10"},
+        {"code": "LIFT-THRESHOLD", "name": "Door threshold for lifts", "days": 1, "trade": "Stone", "risk": "Medium", "ref": "D.10"},
+        {"code": "LIFT-ARCHITRAVE", "name": "Granite cladding on vertical face of lift opening", "days": 2, "trade": "Stone", "risk": "Medium", "ref": "D.10"},
+        {"code": "LOBBY-MEP", "name": "MEP services - electrical, firefighting, FA / PA and mobile wiring", "days": 3, "trade": "MEP", "risk": "Medium", "ref": "D.10"},
+        {"code": "LOBBY-FLOOR", "name": "Lobby flooring + skirting", "days": 3, "trade": "Tiling", "risk": "Medium", "ref": "D.10"},
+        {"code": "LOBBY-WALL", "name": "Lobby wall finishes - cladding or texture paint", "days": 3, "trade": "Finishes", "risk": "Low", "ref": "D.10"},
+        {"code": "LOBBY-CEILING", "name": "Lobby false ceiling", "days": 2, "trade": "Ceilings", "risk": "Low", "ref": "D.10", "conditional": true, "condition": "Activate only when a false ceiling is specified."}
+      ]
+    },
+    "external": {
+      "scope": "project",
+      "phase": "External works",
+      "work_package": "Facade and external painting",
+      "steps": [
+        {"code": "SERVICE-DUCT-CLEAR", "name": "RCC clearance of all service ducts - external faces", "days": 2, "trade": "Civil", "risk": "High", "ref": "E.12"},
+        {"code": "FACADE-FRAME", "name": "Window outer frame / sub-frame in facade completed with sealant", "days": 5, "trade": "Facade", "risk": "High", "ref": "E.12"},
+        {"code": "FACADE-WATER-TEST", "name": "Water test of vertical face", "days": 2, "trade": "Quality", "risk": "High", "ref": "E.12"},
+        {"code": "DAMP-PROOF-COAT", "name": "Damp proof coat", "days": 3, "trade": "Waterproofing", "risk": "Medium", "ref": "E.12"},
+        {"code": "EXTERNAL-PAINT", "name": "External paint - may start from upper floors with crash deck", "days": 8, "trade": "Painting", "risk": "High", "ref": "E.12"},
+        {"code": "RAINWATER-DOWNTAKE", "name": "Rainwater down take completed on priority", "days": 4, "trade": "Plumbing", "risk": "High", "ref": "E.12"}
+      ]
+    },
+    "terrace": {
+      "scope": "tower",
+      "phase": "External works",
+      "work_package": "Terrace waterproofing",
+      "steps": [
+        {"code": "TERRACE-RCC-COMPLETE", "name": "Above terrace RCC works completed", "days": 1, "trade": "Civil", "risk": "High", "ref": "E.13"},
+        {"code": "TERRACE-RECTIFICATION", "name": "Rectification of RCC - if any", "days": 1, "trade": "Civil", "risk": "Medium", "ref": "E.13", "conditional": true, "condition": "Activate only when terrace RCC inspection identifies rectification."},
+        {"code": "TERRACE-SERVICE-CLEAR", "name": "Services activities completed - MEP, facade connections and cradle removal", "days": 1, "trade": "MEP / Facade", "risk": "High", "ref": "E.13"},
+        {"code": "TERRACE-WATERPROOF", "name": "Terrace waterproofing - wing-wise in one go with proper termination details", "days": 5, "trade": "Waterproofing", "risk": "High", "ref": "E.13"},
+        {"code": "TERRACE-PROTECTION", "name": "Protection of completed waterproofing", "days": 2, "trade": "Civil", "risk": "High", "ref": "E.13"}
+      ]
+    },
+    "unit_cleaning": {
+      "scope": "unit",
+      "phase": "Handover",
+      "work_package": "Unit cleaning",
+      "steps": [
+        {"code": "UNIT-DEEP-CLEAN", "name": "Unit deep cleaning - as per priority", "days": 1, "trade": "Cleaning", "risk": "Low", "ref": "E.14"}
+      ]
+    },
+    "lobby_cleaning": {
+      "scope": "tower",
+      "phase": "Handover",
+      "work_package": "Common-area handover",
+      "steps": [
+        {"code": "LOBBY-DEEP-CLEAN", "name": "Lobby deep cleaning - top to bottom", "days": 2, "trade": "Cleaning", "risk": "Low", "ref": "E.14"}
+      ]
+    },
+    "final_inspection": {
+      "scope": "project",
+      "phase": "Handover",
+      "work_package": "Final inspection",
+      "steps": [
+        {"code": "FINAL-INSPECTION", "name": "Final inspection & snag closure", "days": 3, "trade": "Quality", "risk": "High", "ref": "E.14"}
+      ]
+    }
+  }
+}

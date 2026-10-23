@@ -89,6 +89,8 @@ class TestHandCalculatedNetwork(unittest.TestCase):
         self.assertEqual(self.schedule.critical_path, ["A", "C", "D"])
         self.assertEqual(self.schedule.project_finish, date(2026, 3, 9))
         self.assertEqual(self.schedule.project_duration_days, 9)
+        self.assertEqual(self.schedule.activities["B"].free_float_days, 2)
+        self.assertEqual(self.schedule.activities["C"].free_float_days, 0)
 
     def test_delay_inside_float_does_not_move_successor(self) -> None:
         """B has 2 days of float. Adding 1 day to B must not move D or the finish."""
@@ -169,6 +171,64 @@ class TestValidation(unittest.TestCase):
                 sch.load_activities(path)
         finally:
             path.unlink(missing_ok=True)
+
+    def test_fractional_duration_is_rejected(self) -> None:
+        frame = four_activity_frame()
+        frame["duration_days"] = frame["duration_days"].astype(float)
+        frame.loc[frame["activity_id"] == "A", "duration_days"] = 1.5
+        with self.assertRaises(sch.InvalidDurationError):
+            sch.compute_cpm(frame)
+
+    def test_invalid_baseline_date_is_rejected(self) -> None:
+        frame = four_activity_frame()
+        frame.loc[frame["activity_id"] == "A", "baseline_start"] = "not-a-date"
+        with self.assertRaises(sch.ScheduleError):
+            sch.compute_cpm(frame)
+
+    def test_empty_network_is_rejected(self) -> None:
+        with self.assertRaises(sch.ScheduleError):
+            sch.compute_cpm(four_activity_frame().iloc[0:0])
+
+    def test_zero_duration_milestone_uses_same_day_date(self) -> None:
+        frame = pd.DataFrame(
+            {
+                "activity_id": ["A", "M", "B"],
+                "activity_name": ["Task", "Milestone", "Successor"],
+                "tower_id": ["T1", "T1", "T1"],
+                "predecessors": [[], ["A"], ["M"]],
+                "duration_days": [2, 0, 2],
+                "baseline_start": [HAND_EPOCH_START] * 3,
+                "is_milestone": [False, True, False],
+            }
+        )
+        schedule = sch.compute_cpm(frame)
+        self.assertEqual(
+            schedule.activities["M"].earliest_start, date(2026, 3, 3)
+        )
+        self.assertEqual(
+            schedule.activities["M"].earliest_finish, date(2026, 3, 3)
+        )
+        self.assertEqual(
+            schedule.activities["B"].earliest_start, date(2026, 3, 3)
+        )
+        self.assertTrue(schedule.activities["M"].is_milestone)
+        with self.assertRaises(sch.ScheduleError):
+            sch.apply_delay(frame, "M", 1)
+
+    def test_multiple_critical_paths_are_reported(self) -> None:
+        frame = pd.DataFrame(
+            {
+                "activity_id": ["A", "B"],
+                "activity_name": ["Path A", "Path B"],
+                "tower_id": ["T1", "T2"],
+                "predecessors": [[], []],
+                "duration_days": [2, 2],
+                "baseline_start": [HAND_EPOCH_START, HAND_EPOCH_START],
+            }
+        )
+        schedule = sch.compute_cpm(frame)
+        self.assertEqual(schedule.critical_paths, [["A"], ["B"]])
+        self.assertEqual(schedule.critical_activities, ["A", "B"])
 
     def test_duplicate_ids_rejected(self) -> None:
         csv_text = (

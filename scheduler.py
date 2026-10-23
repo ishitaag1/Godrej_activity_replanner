@@ -92,6 +92,8 @@ class ActivitySchedule:
     latest_finish: date  # inclusive
     total_float_days: int
     is_critical: bool
+    free_float_days: int = 0
+    is_milestone: bool = False
 
 
 @dataclass
@@ -105,6 +107,7 @@ class ProjectSchedule:
     critical_path: list[str]
     critical_activities: list[str]
     warnings: list[str] = field(default_factory=list)
+    critical_paths: list[list[str]] = field(default_factory=list)
 
     def to_dataframe(self) -> pd.DataFrame:
         """Turn the schedule into a table that Streamlit can display later."""
@@ -123,7 +126,9 @@ class ProjectSchedule:
                     "latest_start": item.latest_start.isoformat(),
                     "latest_finish": item.latest_finish.isoformat(),
                     "total_float_days": item.total_float_days,
+                    "free_float_days": item.free_float_days,
                     "is_critical": item.is_critical,
+                    "is_milestone": item.is_milestone,
                 }
             )
         frame = pd.DataFrame(rows)
@@ -149,6 +154,8 @@ def parse_predecessors(raw_value: Any) -> list[str]:
     Empty cells mean "no predecessors" (a start activity).
     We accept semicolon or comma separators so the CSV stays easy to edit.
     """
+    if isinstance(raw_value, (list, tuple, set)):
+        return [str(part).strip() for part in raw_value if str(part).strip()]
     if raw_value is None or (isinstance(raw_value, float) and pd.isna(raw_value)):
         return []
     text = str(raw_value).strip()
@@ -174,6 +181,23 @@ def parse_iso_date(raw_value: Any, activity_id: str) -> date:
         ) from exc
 
 
+def parse_boolean(raw_value: Any, field_name: str, default: bool = False) -> bool:
+    """Parse CSV-friendly true/false values without treating 'False' as true."""
+    if raw_value is None or pd.isna(raw_value):
+        return default
+    if isinstance(raw_value, bool):
+        return raw_value
+    if isinstance(raw_value, (int, float)) and raw_value in (0, 1):
+        return bool(raw_value)
+    if isinstance(raw_value, str):
+        value = raw_value.strip().casefold()
+        if value in {"true", "1", "yes"}:
+            return True
+        if value in {"false", "0", "no", ""}:
+            return False
+    raise ScheduleError(f"{field_name} must be true or false.")
+
+
 def load_activities(csv_path: str | Path) -> pd.DataFrame:
     """
     Read activities.csv and return a cleaned table.
@@ -195,6 +219,11 @@ def load_activities(csv_path: str | Path) -> pd.DataFrame:
     frame["tower_id"] = frame["tower_id"].astype(str).str.strip()
     frame["predecessors"] = frame["predecessors"].apply(parse_predecessors)
     frame["duration_days"] = pd.to_numeric(frame["duration_days"], errors="coerce")
+    if "is_milestone" not in frame:
+        frame["is_milestone"] = False
+    frame["is_milestone"] = frame["is_milestone"].apply(
+        lambda value: parse_boolean(value, "is_milestone")
+    )
     frame["baseline_start"] = [
         parse_iso_date(value, activity_id)
         for value, activity_id in zip(frame["baseline_start"], frame["activity_id"])
@@ -207,11 +236,18 @@ def load_activities(csv_path: str | Path) -> pd.DataFrame:
     if frame["activity_id"].eq("").any():
         raise InvalidActivityIdError("One or more rows have an empty activity_id.")
 
-    bad_durations = frame[frame["duration_days"].isna() | (frame["duration_days"] < 1)]
+    invalid_duration = (
+        frame["duration_days"].isna()
+        | (frame["duration_days"] < 0)
+        | (frame["duration_days"] % 1 != 0)
+        | ((frame["duration_days"] == 0) & ~frame["is_milestone"])
+    )
+    bad_durations = frame[invalid_duration]
     if not bad_durations.empty:
         bad_ids = bad_durations["activity_id"].tolist()
         raise InvalidDurationError(
-            f"Duration must be an integer of at least 1 day. Bad rows: {bad_ids}"
+            f"Duration must be a positive whole number unless the activity is a "
+            f"milestone with zero days. Bad rows: {bad_ids}"
         )
     frame["duration_days"] = frame["duration_days"].astype(int)
     return frame.reset_index(drop=True)
@@ -350,6 +386,25 @@ def compute_total_float(
     }
 
 
+def compute_free_float(
+    graph: nx.DiGraph,
+    earliest_start: dict[str, int],
+    exclusive_finish: dict[str, int],
+    project_exclusive_finish: int,
+) -> dict[str, int]:
+    """Return the delay available before any immediate successor is affected."""
+    free_float: dict[str, int] = {}
+    for activity_id in graph:
+        successors = list(graph.successors(activity_id))
+        successor_starts = [
+            earliest_start[successor_id] for successor_id in successors
+        ] or [project_exclusive_finish]
+        free_float[activity_id] = min(
+            successor_starts
+        ) - exclusive_finish[activity_id]
+    return free_float
+
+
 def identify_critical_activities(total_float: dict[str, int]) -> list[str]:
     """Return every activity with zero total float, sorted by ID for stability."""
     return sorted(
@@ -390,28 +445,117 @@ def extract_critical_path(
     return path
 
 
+def extract_critical_paths(
+    graph: nx.DiGraph,
+    earliest_start: dict[str, int],
+    total_float: dict[str, int],
+) -> list[list[str]]:
+    """Return every zero-float start-to-finish chain in deterministic order."""
+    critical = {
+        activity_id for activity_id, float_days in total_float.items()
+        if float_days == 0
+    }
+    starts = sorted(
+        (
+            activity_id for activity_id in critical
+            if not any(pred in critical for pred in graph.predecessors(activity_id))
+        ),
+        key=lambda activity_id: (earliest_start[activity_id], activity_id),
+    )
+    paths: list[list[str]] = []
+
+    def visit(activity_id: str, path: list[str]) -> None:
+        successors = sorted(
+            (
+                successor_id for successor_id in graph.successors(activity_id)
+                if successor_id in critical
+            ),
+            key=lambda successor_id: (earliest_start[successor_id], successor_id),
+        )
+        if not successors:
+            paths.append(path)
+            return
+        for successor_id in successors:
+            visit(successor_id, [*path, successor_id])
+
+    for activity_id in starts:
+        visit(activity_id, [activity_id])
+    return paths
+
+
 def compute_cpm(frame: pd.DataFrame) -> ProjectSchedule:
     """Run validation + forward pass + backward pass on a cleaned activity table."""
-    graph = build_graph(frame)
+    if frame.empty:
+        raise ScheduleError("Cannot calculate a schedule with no activities.")
+    required = set(REQUIRED_COLUMNS)
+    missing = sorted(required - set(frame.columns))
+    if missing:
+        raise ScheduleError(f"Activity table is missing columns: {missing}")
+    normalized = frame.copy(deep=True)
+    normalized["activity_id"] = normalized["activity_id"].astype(str).str.strip()
+    if frame["activity_id"].isna().any() or normalized["activity_id"].eq("").any():
+        raise InvalidActivityIdError("One or more rows have an empty activity_id.")
+    duplicate_ids = normalized.loc[
+        normalized["activity_id"].duplicated(keep=False), "activity_id"
+    ].unique().tolist()
+    if duplicate_ids:
+        raise DuplicateActivityIdError(f"Duplicate activity_id values: {duplicate_ids}")
+    durations: dict[str, int] = {}
+    milestones: dict[str, bool] = {}
+    floors: dict[str, int] = {}
+    parsed_predecessors: dict[str, list[str]] = {}
+    for _, row in frame.iterrows():
+        activity_id = str(row["activity_id"]).strip()
+        if isinstance(row["duration_days"], bool):
+            raise InvalidDurationError(
+                f"Activity {activity_id} duration must be a positive whole number."
+            )
+        try:
+            duration = float(row["duration_days"])
+        except (TypeError, ValueError):
+            duration = float("nan")
+        is_milestone = parse_boolean(
+            row.get("is_milestone", False), "is_milestone"
+        )
+        if (
+            not pd.notna(duration)
+            or duration < 0
+            or not duration.is_integer()
+            or (duration == 0 and not is_milestone)
+        ):
+            raise InvalidDurationError(
+                f"Activity {activity_id} must have a positive whole-number duration "
+                "unless it is a zero-day milestone."
+            )
+        durations[activity_id] = int(duration)
+        milestones[activity_id] = is_milestone
+        parsed_predecessors[activity_id] = parse_predecessors(row["predecessors"])
+        floors[activity_id] = date_to_offset(
+            parse_iso_date(row["baseline_start"], activity_id)
+        )
+    normalized["predecessors"] = normalized["activity_id"].map(parsed_predecessors)
+    normalized["duration_days"] = normalized["activity_id"].map(durations)
+    normalized["is_milestone"] = normalized["activity_id"].map(milestones)
+    normalized["baseline_start"] = normalized.apply(
+        lambda row: parse_iso_date(row["baseline_start"], row["activity_id"]), axis=1
+    )
+    graph = build_graph(normalized)
     validate_graph(graph)
 
-    durations = {
-        row["activity_id"]: int(row["duration_days"]) for _, row in frame.iterrows()
-    }
-    earliest_start_floor = {
-        row["activity_id"]: date_to_offset(row["baseline_start"])
-        for _, row in frame.iterrows()
-    }
-
-    earliest_start, exclusive_finish = forward_pass(graph, durations, earliest_start_floor)
+    earliest_start, exclusive_finish = forward_pass(graph, durations, floors)
     latest_start, exclusive_latest_finish = backward_pass(graph, durations, exclusive_finish)
     total_float = compute_total_float(earliest_start, latest_start)
+    project_exclusive_finish = max(exclusive_finish.values())
+    free_float = compute_free_float(
+        graph, earliest_start, exclusive_finish, project_exclusive_finish
+    )
     critical_ids = identify_critical_activities(total_float)
     critical_path = extract_critical_path(graph, earliest_start, total_float)
+    critical_paths = extract_critical_paths(graph, earliest_start, total_float)
 
     warnings: list[str] = []
     activities: dict[str, ActivitySchedule] = {}
-    for _, row in frame.iterrows():
+    for _, row in normalized.iterrows():
         activity_id = row["activity_id"]
         es = earliest_start[activity_id]
         ef_excl = exclusive_finish[activity_id]
@@ -430,10 +574,16 @@ def compute_cpm(frame: pd.DataFrame) -> ProjectSchedule:
             duration_days=durations[activity_id],
             baseline_start=row["baseline_start"],
             earliest_start=offset_to_date(es),
-            earliest_finish=offset_to_date(ef_excl - 1),
+            earliest_finish=offset_to_date(
+                ef_excl if milestones[activity_id] else ef_excl - 1
+            ),
             latest_start=offset_to_date(ls),
-            latest_finish=offset_to_date(lf_excl - 1),
+            latest_finish=offset_to_date(
+                lf_excl if milestones[activity_id] else lf_excl - 1
+            ),
             total_float_days=total_float[activity_id],
+            free_float_days=free_float[activity_id],
+            is_milestone=milestones[activity_id],
             is_critical=total_float[activity_id] == 0,
         )
 
@@ -446,6 +596,7 @@ def compute_cpm(frame: pd.DataFrame) -> ProjectSchedule:
         project_duration_days=(project_finish - project_start).days + 1,
         critical_path=critical_path,
         critical_activities=critical_ids,
+        critical_paths=critical_paths,
         warnings=warnings,
     )
 
@@ -485,31 +636,129 @@ def apply_delay(
 
     Returns (revised_frame, original_schedule, revised_schedule, impact).
     """
-    if delay_days < 0:
-        raise NegativeDelayError(
-            "Negative delays are not supported in version 1. "
-            "This engine does not crash or compress the schedule."
-        )
-    if activity_id not in set(frame["activity_id"]):
-        raise InvalidActivityIdError(
-            f"Unknown activity_id '{activity_id}'. "
-            "Use the unique ID (for example T3-TIL), not only the name."
-        )
-
-    original_schedule = compute_cpm(frame)
-    revised_frame = frame.copy(deep=True)
-    mask = revised_frame["activity_id"] == activity_id
-    revised_frame.loc[mask, "duration_days"] = (
-        revised_frame.loc[mask, "duration_days"] + int(delay_days)
+    revised_frame, original_schedule, revised_schedule, impact = apply_delays(
+        frame, {activity_id: delay_days}
     )
-    revised_schedule = compute_cpm(revised_frame)
-    impact = build_impact_summary(
-        delayed_activity_id=activity_id,
-        delay_days=int(delay_days),
-        original=original_schedule,
-        revised=revised_schedule,
+    impact.update(
+        {
+            "delayed_activity_id": activity_id,
+            "delayed_activity_name": original_schedule.activities[activity_id].activity_name,
+            "delayed_tower_id": original_schedule.activities[activity_id].tower_id,
+            "delay_days": delay_days,
+            "delay_meaning": (
+                "Duration of the delayed activity increased by delay_days. "
+                "Successors move only if dependency constraints require it."
+            ),
+            "original_project_start": original_schedule.project_start.isoformat(),
+            "original_critical_activities": original_schedule.critical_activities,
+            "revised_critical_activities": revised_schedule.critical_activities,
+            "limitations": [
+                "No resource leveling.",
+                "No recovery/optimization (overtime, extra crews, crashing).",
+                "Calendar days only; weekends are not skipped.",
+                "Finish-to-start links only.",
+            ],
+        }
     )
     return revised_frame, original_schedule, revised_schedule, impact
+
+
+def apply_delays(
+    frame: pd.DataFrame,
+    delays: dict[str, int],
+) -> tuple[pd.DataFrame, ProjectSchedule, ProjectSchedule, dict[str, Any]]:
+    """Apply multiple duration extensions simultaneously and recalculate once."""
+    if not delays:
+        raise ScheduleError("A delay scenario must contain at least one activity.")
+    known = set(frame["activity_id"].astype(str))
+    for activity_id, raw_days in delays.items():
+        if activity_id not in known:
+            raise InvalidActivityIdError(f"Unknown activity_id '{activity_id}'.")
+        if isinstance(raw_days, bool) or not isinstance(raw_days, int):
+            raise ScheduleError(f"Delay for {activity_id} must be a whole number.")
+        if raw_days < 0:
+            raise NegativeDelayError(
+                "Negative delays are not supported; recovery is a separate analysis."
+            )
+
+    original_schedule = compute_cpm(frame)
+    for activity_id in delays:
+        if original_schedule.activities[activity_id].is_milestone:
+            raise ScheduleError(
+                f"{activity_id} is a milestone; delay it by changing its approved "
+                "date constraint, not by adding task duration."
+            )
+    revised_frame = frame.copy(deep=True)
+    for activity_id, delay_days in delays.items():
+        mask = revised_frame["activity_id"] == activity_id
+        revised_frame.loc[mask, "duration_days"] += delay_days
+    revised_schedule = compute_cpm(revised_frame)
+    impact = build_scenario_impact_summary(
+        delays, original_schedule, revised_schedule
+    )
+    return revised_frame, original_schedule, revised_schedule, impact
+
+
+def build_scenario_impact_summary(
+    delays: dict[str, int],
+    original: ProjectSchedule,
+    revised: ProjectSchedule,
+) -> dict[str, Any]:
+    """Summarize simultaneous delay effects without adding isolated impacts."""
+    affected: list[dict[str, Any]] = []
+    for activity_id, before in original.activities.items():
+        after = revised.activities[activity_id]
+        start_slip = (after.earliest_start - before.earliest_start).days
+        finish_slip = (after.earliest_finish - before.earliest_finish).days
+        float_consumed = before.total_float_days - after.total_float_days
+        if (
+            start_slip
+            or finish_slip
+            or float_consumed > 0
+            or before.is_critical != after.is_critical
+        ):
+            affected.append(
+                {
+                    "activity_id": activity_id,
+                    "activity_name": before.activity_name,
+                    "tower_id": before.tower_id,
+                    "original_start": before.earliest_start.isoformat(),
+                    "revised_start": after.earliest_start.isoformat(),
+                    "start_slip_days": start_slip,
+                    "original_finish": before.earliest_finish.isoformat(),
+                    "revised_finish": after.earliest_finish.isoformat(),
+                    "finish_slip_days": finish_slip,
+                    "original_float_days": before.total_float_days,
+                    "revised_float_days": after.total_float_days,
+                    "float_consumed_days": float_consumed,
+                    "was_critical": before.is_critical,
+                    "float_change_days": after.total_float_days - before.total_float_days,
+                    "was_critical": before.is_critical,
+                    "is_critical": after.is_critical,
+                }
+            )
+    affected.sort(key=lambda row: (row["original_start"], row["activity_id"]))
+    return {
+        "delay_events": dict(delays),
+        "original_project_finish": original.project_finish.isoformat(),
+        "revised_project_finish": revised.project_finish.isoformat(),
+        "project_finish_slip_days": (
+            revised.project_finish - original.project_finish
+        ).days,
+        "original_critical_path": original.critical_path,
+        "revised_critical_path": revised.critical_path,
+        "original_critical_paths": original.critical_paths,
+        "revised_critical_paths": revised.critical_paths,
+        "critical_path_changed": original.critical_paths != revised.critical_paths,
+        "newly_critical_activities": sorted(
+            set(revised.critical_activities) - set(original.critical_activities)
+        ),
+        "float_consumed_activities": [
+            row for row in affected if row["float_consumed_days"] > 0
+        ],
+        "affected_activity_count": len(affected),
+        "affected_activities": affected,
+    }
 
 
 def build_impact_summary(

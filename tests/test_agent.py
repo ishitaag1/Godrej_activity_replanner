@@ -105,6 +105,14 @@ class TestScheduleAssistantTools(unittest.TestCase):
         self.assertTrue(details["ok"])
         self.assertEqual(details["earliest_start"], date(2026, 4, 19).isoformat())
         self.assertTrue(details["is_critical"])
+        self.assertIn("T3-PNT", details["successors"])
+
+    def test_sequence_validation_tool_uses_deterministic_validator(self) -> None:
+        result = self.assistant.dispatch_tool("get_sequence_violations", {})
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            result["source"], "sequence_validator.validate_construction_sequence"
+        )
 
 
 class TestOllamaFallback(unittest.TestCase):

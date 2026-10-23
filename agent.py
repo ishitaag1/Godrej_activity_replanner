@@ -14,13 +14,17 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import date
 from pathlib import Path
 from typing import Any, Callable
 
+import pandas as pd
 import requests
 from dotenv import load_dotenv
 
 import scheduler as sch
+import progress_tracker
+import sequence_validator
 
 load_dotenv()
 
@@ -144,6 +148,22 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_sequence_violations",
+            "description": "Return construction sequence rule findings from the deterministic validator.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_at_risk_activities",
+            "description": "Return activities flagged at risk by explicit progress status or low CPM float.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
 ]
 
 
@@ -241,9 +261,17 @@ def _as_text(value: Any, field_name: str) -> str:
 class ScheduleAssistant:
     """Loads the activity CSV once and answers only through allow-listed tools."""
 
-    def __init__(self, csv_path: str | Path = DEFAULT_CSV) -> None:
+    def __init__(
+        self,
+        csv_path: str | Path = DEFAULT_CSV,
+        frame: pd.DataFrame | None = None,
+    ) -> None:
         self.csv_path = Path(csv_path)
-        self.frame, self.baseline = sch.load_and_schedule(self.csv_path)
+        if frame is None:
+            self.frame, self.baseline = sch.load_and_schedule(self.csv_path)
+        else:
+            self.frame = frame.copy(deep=True)
+            self.baseline = sch.compute_cpm(self.frame)
 
     def get_project_status(self) -> dict[str, Any]:
         return {
@@ -320,6 +348,7 @@ class ScheduleAssistant:
             raise sch.InvalidActivityIdError(
                 f"Unknown activity_id '{wanted}'. Use the unique ID (for example T3-TIL)."
             )
+        successors = sorted(sch.build_graph(self.frame).successors(wanted))
         return {
             "ok": True,
             "source": "scheduler.compute_cpm",
@@ -327,6 +356,7 @@ class ScheduleAssistant:
             "activity_name": item.activity_name,
             "tower_id": item.tower_id,
             "predecessors": item.predecessors,
+            "successors": successors,
             "duration_days": item.duration_days,
             "baseline_start": item.baseline_start.isoformat(),
             "earliest_start": item.earliest_start.isoformat(),
@@ -334,7 +364,30 @@ class ScheduleAssistant:
             "latest_start": item.latest_start.isoformat(),
             "latest_finish": item.latest_finish.isoformat(),
             "total_float_days": item.total_float_days,
+            "free_float_days": item.free_float_days,
             "is_critical": item.is_critical,
+            "is_milestone": item.is_milestone,
+        }
+
+    def get_sequence_violations(self) -> dict[str, Any]:
+        findings = sequence_validator.validate_construction_sequence(self.frame)
+        return {
+            "ok": True,
+            "source": "sequence_validator.validate_construction_sequence",
+            "violation_count": len(findings),
+            "violations": findings,
+        }
+
+    def get_at_risk_activities(self) -> dict[str, Any]:
+        report = progress_tracker.build_progress_report(
+            self.frame, self.baseline, date.today()
+        )
+        at_risk = report.loc[report["at_risk"]].where(pd.notna(report), None)
+        return {
+            "ok": True,
+            "source": "progress_tracker.build_progress_report",
+            "as_of": date.today().isoformat(),
+            "activities": at_risk.to_dict(orient="records"),
         }
 
     def analyze_delay(self, activity_id: str, delay_days: int) -> dict[str, Any]:
@@ -375,6 +428,8 @@ class ScheduleAssistant:
                 (arguments or {}).get("activity_id"),
                 (arguments or {}).get("delay_days"),
             ),
+            "get_sequence_violations": lambda: self.get_sequence_violations(),
+            "get_at_risk_activities": lambda: self.get_at_risk_activities(),
         }
         if name not in handlers:
             raise UnknownToolError(
