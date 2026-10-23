@@ -21,13 +21,20 @@ st.markdown(
     """
     <style>
     #MainMenu {
-        visibility: hidden;
+        display: none !important;
+    }
+
+    #GithubIcon {
+        display: none !important;
+    }
+
+    header [data-testid="stToolbar"] {
+        display: none !important;
     }
 
     footer {
-        visibility: hidden;
+        display: none !important;
     }
-
     </style>
     """,
     unsafe_allow_html=True
