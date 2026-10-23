@@ -1,7 +1,6 @@
 """Progress and forecast calculations based only on explicitly supplied progress."""
 
 from __future__ import annotations
-
 import math
 from datetime import date
 from typing import Any

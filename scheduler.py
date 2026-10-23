@@ -256,7 +256,6 @@ def load_activities(csv_path: str | Path) -> pd.DataFrame:
 def build_graph(frame: pd.DataFrame) -> nx.DiGraph:
     """
     Build a directed graph: predecessor -> successor.
-
     An arrow A -> B means "A must finish before B can start".
     """
     graph = nx.DiGraph()

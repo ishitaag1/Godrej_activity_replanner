@@ -1,7 +1,6 @@
 """Construction-sequence checks for documented, mandatory workflow ordering."""
 
 from __future__ import annotations
-
 from typing import Any
 
 import networkx as nx

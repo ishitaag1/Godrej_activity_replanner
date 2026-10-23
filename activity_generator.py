@@ -7,14 +7,13 @@ import ast
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
-
 import pandas as pd
-
 import scheduler as sch
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_TEMPLATE = ROOT / "templates" / "construction_sequence.json"
 DEFAULT_CONFIG = ROOT / "data" / "demo_project_config.json"
+
 
 ACTIVITY_COLUMNS = [
     "activity_id",

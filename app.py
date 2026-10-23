@@ -1,7 +1,6 @@
 """Streamlit project-controls dashboard for synthetic construction schedules."""
 
 from __future__ import annotations
-
 from datetime import date
 from pathlib import Path
 from typing import Any
